@@ -15,13 +15,12 @@ public class TestFhirCrud {
                     .url(baseFhirServerUrl + "/Patient/" + patientID)
                     .build();
 
+            System.out.print("Retrieving Patient resource with ID=" + patientID + "...");
             try (Response response = client.newCall(request).execute()) {
+                System.out.println("\nHTTP Status return code: " + response.code() + " (" + response.message() + ")");
                 if (response.body() != null) {
-                    System.out.println("HTTP Status Code: " + response.code() + " (" + response.message() + ")");
+                    System.out.println("Resource body returned:");
                     System.out.println(response.body().string());
-                }
-                else {
-                    System.err.println("Empty Response!");
                 }
             }
         }
