@@ -17,6 +17,7 @@ public class TestFhirCrud {
 
             try (Response response = client.newCall(request).execute()) {
                 if (response.body() != null) {
+                    System.out.println("HTTP Status Code: " + response.code() + " (" + response.message() + ")");
                     System.out.println(response.body().string());
                 }
                 else {
