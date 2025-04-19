@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class TestFhirCrud {
     public static void main(String[] args) throws IOException {
@@ -51,22 +52,36 @@ public class TestFhirCrud {
                     // Perform the chosen READ sub-menu action
                     switch (subChoice) {
                         case 'i':
-                            int patientID = 596742;
+                            System.out.print("ID?: ");
+                            //int patientID = 596742;
+                            String patientID = scanner.next();
                             System.out.println("Retrieving Patient resource with ID=" + patientID + " ...");
                             fullFhirServerUrl = baseFhirServerUrl + "/Patient/" + patientID;
                             break;
                         case 'g':
-                            String givenName = "Ana";
+                            System.out.print("Given Name?: ");
+                            //String givenName = "Ana";
+                            String givenName = scanner.next();
                             System.out.println("Retrieving Patient resource(s) with GIVEN name of " + givenName + " ...");
                             fullFhirServerUrl = baseFhirServerUrl + "/Patient?given:exact=" + givenName + limitOption + formatOptions;
                             break;
                         case 'f':
-                            String familyName = "Methaila";
+                            System.out.print("Family Name?: ");
+                            //String familyName = "Methaila";
+                            String familyName = scanner.next();
                             System.out.println("Retrieving Patient resource(s) with FAMILY name of " + familyName + " ...");
                             fullFhirServerUrl = baseFhirServerUrl + "/Patient?family:exact=" + familyName + limitOption + formatOptions;
                             break;
                         case 'b':
-                            String birthDate = "2001-01-01";
+                            System.out.print("Birthdate (YYYY-MM-DD)?: ");
+                            //String birthDate = "2001-01-01";
+                            Pattern pattern = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
+                            if (scanner.hasNext(pattern) == false) {
+                                scanner.next();
+                                System.out.println("Invalid date string - returning to Main Menu...");
+                                continue;
+                            }
+                            String birthDate = scanner.next();
                             System.out.println("Retrieving Patient resource(s) with BIRTHDATE of " + birthDate + " ...");
                             fullFhirServerUrl = baseFhirServerUrl + "/Patient?birthdate:exact=" + birthDate + limitOption + formatOptions;
                             break;
