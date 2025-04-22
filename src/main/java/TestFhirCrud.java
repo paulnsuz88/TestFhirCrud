@@ -8,33 +8,63 @@ import java.io.IOException;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
+
 public class TestFhirCrud {
-    //static final String baseFhirServerUrl = "http://hapi.fhir.org/baseR4";
-    static final String baseFhirServerUrl = "https://wildfhir.aegis.net/r4";
-    static final String formatOptions = "&_format=json";
     static final String limitOption = "&_count=50";
+    static final String miscOptions = limitOption;
     static final String acceptHeaderValue = "application/fhir+json";
     static OkHttpClient httpClient = new OkHttpClient();
     static Scanner mainScanner = new Scanner(System.in);
+    static String baseFhirServerUrl;
     static String fullFhirServerUrl;
 
     public static void main(String[] args) throws IOException {
-
-
-        // Ask which CRUD operation the user wants to execute
+        final String fhirSvrMenuStr = """
+Which FHIR server do you want to test with?:
+    h) HAPI FHIR base R4
+    w) WildFHIR (aegis.net) R4
+Enter your choice (h or w):
+""";
+        final String mainMenuStr = """
+Which CRUD action do you want to test?:
+    c) CREATE a Patient resource
+    r) READ a Patient resource
+    u) UPDATE a Patient resource
+    d) DELETE a Patient resource
+    q) QUIT
+Enter your choice (c,r,u,d or q):
+""";
         char mainChoice;
 
+        // Ask which FHIR server to use
+        loop:
+        while (true) {
+            // Display the FHIR Server menu
+            System.out.print(fhirSvrMenuStr);
+            mainChoice = Character.toLowerCase(mainScanner.next().charAt(0)); // Normalize input to lower case
+
+            // Perform the chosen MAIN menu action
+            switch (mainChoice) {
+                case 'h':
+                    baseFhirServerUrl = "http://hapi.fhir.org/baseR4";
+                    break loop;
+                case 'w':
+                    baseFhirServerUrl = "https://wildfhir.aegis.net/r4";
+                    break loop;
+                default:
+                    System.out.println("Invalid FHIR Server choice, please try again.");
+                    break;
+            }
+        }
+        System.out.println("baseFhirServerUrl = " + baseFhirServerUrl);
+        // Ask which CRUD operation the user wants to execute
         do {
             // Display the MAIN menu
-            System.out.println("\nWhich CRUD action do you want to test?:");
-            System.out.println("c) CREATE a Patient resource");
-            System.out.println("r) READ a Patient resource");
-            System.out.println("u) UPDATE a Patient resource");
-            System.out.println("d) DELETE a Patient resource");
-            System.out.println("q) QUIT");
-            System.out.print("Enter your choice (c,r,u,d or q): ");
-
-            mainChoice = Character.toLowerCase(mainScanner.next().charAt(0)); // Normalize input
+            System.out.print(mainMenuStr);
+            mainChoice = Character.toLowerCase(mainScanner.next().charAt(0)); // Normalize input to lower case
 
             // Perform the chosen MAIN menu action
             switch (mainChoice) {
@@ -54,7 +84,7 @@ public class TestFhirCrud {
                     System.out.println("Goodbye!");
                     break;
                 default:
-                    System.out.println("Invalid choice, please try again.");
+                    System.out.println("Invalid CRUD Action choice, please try again.");
             }
         } while (mainChoice != 'q');
         mainScanner.close();
@@ -65,14 +95,16 @@ public class TestFhirCrud {
         return false;
     }
     static boolean readFhir() throws IOException {
+        final String readFhirMenuStr = """
+How would you like to specify the Patient?:");
+    i) Enter the numeric FHIR ID of the Patient resource");
+    g) Search for Patient(s) by exact GIVEN name");
+    f) Search for Patient(s) by exact FAMILY name");
+    b) Search for Patient(s) by exact BIRTHDATE");
+Enter your choice (i,g,f or b): ");
+""";
         // Display the READ sub-menu
-        System.out.println("\nHow would you like to specify the Patient?:");
-        System.out.println("i) Enter the numeric FHIR ID of the Patient resource");
-        System.out.println("g) Search for Patient(s) by exact GIVEN name");
-        System.out.println("f) Search for Patient(s) by exact FAMILY name");
-        System.out.println("b) Search for Patient(s) by exact BIRTHDATE");
-        System.out.print("Enter your choice (i,g,f or b): ");
-
+        System.out.print(readFhirMenuStr);
         char subChoice = Character.toLowerCase(mainScanner.next().charAt(0)); // Normalize input
 
         // Perform the chosen READ sub-menu action
@@ -90,14 +122,14 @@ public class TestFhirCrud {
                 //String givenName = "Ana";
                 String givenName = mainScanner.next();
                 System.out.println("Retrieving Patient resource(s) with GIVEN name of " + givenName + " ...");
-                fullFhirServerUrl = baseFhirServerUrl + "/Patient?given:exact=" + givenName + limitOption + formatOptions;
+                fullFhirServerUrl = baseFhirServerUrl + "/Patient?given:exact=" + givenName + miscOptions;
                 break;
             case 'f':
                 System.out.print("Family Name?: ");
                 //String familyName = "Methaila";
                 String familyName = mainScanner.next();
                 System.out.println("Retrieving Patient resource(s) with FAMILY name of " + familyName + " ...");
-                fullFhirServerUrl = baseFhirServerUrl + "/Patient?family:exact=" + familyName + limitOption + formatOptions;
+                fullFhirServerUrl = baseFhirServerUrl + "/Patient?family:exact=" + familyName + miscOptions;
                 break;
             case 'b':
                 System.out.print("Birthdate (YYYY-MM-DD)?: ");
@@ -110,8 +142,8 @@ public class TestFhirCrud {
                 }
                 String birthDate = mainScanner.next();
                 System.out.println("Retrieving Patient resource(s) with BIRTHDATE of " + birthDate + " ...");
-                //fullFhirServerUrl = baseFhirServerUrl + "/Patient?birthdate:exact=" + birthDate + limitOption + formatOptions;
-                fullFhirServerUrl = baseFhirServerUrl + "/Patient?birthdate=" + birthDate + limitOption + formatOptions;
+                //fullFhirServerUrl = baseFhirServerUrl + "/Patient?birthdate:exact=" + birthDate + miscOptions;
+                fullFhirServerUrl = baseFhirServerUrl + "/Patient?birthdate=" + birthDate + miscOptions;
                 break;
             default:
                 System.out.println("Invalid choice - returning to Main Menu...");
@@ -143,11 +175,20 @@ public class TestFhirCrud {
             // parse id value from response JSON, using Jackson
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode rootNode = objectMapper.readTree(responseBodyStr);
+            // Print resourceType and id from response
             String resourceType = rootNode.path("resourceType").asText();
             String resourceId = rootNode.path("id").asText();
-            System.out.println("Extracted values:");
             System.out.println("resourceType = " + resourceType);
-            System.out.println("id = " + resourceId);
+            if (!resourceId.isEmpty()) System.out.println("id = " + resourceId);
+            // Locate the human-readable XHTML "text" field if it exists in the response
+            String xhtmlTextDiv = rootNode.path("text").path("div").toString();
+            Document xhtmlDoc = Jsoup.parse(xhtmlTextDiv, "", Parser.xmlParser());
+            String textDivStr = xhtmlDoc.text();
+            // Print the human-readable message as plain text
+            if (!textDivStr.isEmpty()) {
+                System.out.println("text.div value from Response (intended to be human-readable):");
+                System.out.println(textDivStr);
+            }
             if (resourceType.equals("Bundle")) {
                 JsonNode currentPagedResult = rootNode;
                 // Loop through multiple paged results, if necessary
